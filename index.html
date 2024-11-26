@@ -31,81 +31,126 @@
             transition: color 0.3s;
         }
         nav ul li a:hover { color: #fdd835; }
-        header {
+        .container {
             text-align: center;
-            padding: 40px 20px;
-            background: linear-gradient(to right, #1b1f3b, #21264b);
-            color: white;
+            padding: 20px;
         }
-        header h1 { font-size: 36px; margin: 0; }
-        header p { font-size: 18px; }
-        .container { padding: 20px; }
-        .game-section { display: flex; flex-wrap: wrap; gap: 20px; }
-        .game-card {
+        form {
+            max-width: 300px;
+            margin: 20px auto;
             background: #2c335a;
             padding: 20px;
             border-radius: 8px;
-            flex: 1 1 calc(33.333% - 20px);
-            text-align: center;
-            transition: transform 0.3s;
         }
-        .game-card:hover { transform: translateY(-5px); }
-        .game-card h2 { color: white; margin-bottom: 10px; }
-        .game-card button {
+        form input, form button {
+            display: block;
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        form button {
             background: #fdd835;
             color: #121212;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
             cursor: pointer;
-            transition: background 0.3s;
         }
-        .game-card button:hover { background: #ffc400; }
+        form button:hover {
+            background: #ffc400;
+        }
     </style>
 </head>
 <body>
     <nav>
         <h1>Win.Fun</h1>
         <ul>
-            <li><a href="#games">Games</a></li>
-            <li><a href="#account">Account</a></li>
+            <li><a href="#" onclick="showLogin()">Login</a></li>
+            <li><a href="#" onclick="showRegister()">Register</a></li>
+            <li><a href="#" onclick="logout()">Logout</a></li>
         </ul>
     </nav>
-    <header>
-        <h1>Welcome to Win.Fun</h1>
-        <p>Play exciting games and win big with crypto!</p>
-    </header>
     <div class="container">
-        <section id="games" class="game-section">
-            <div class="game-card">
-                <h2>Limbo</h2>
-                <p>Bet Amount: <input type="number" id="limbo-bet" value="10"></p>
-                <p>Multiplier: <input type="number" id="limbo-multiplier" value="2"></p>
-                <button onclick="playLimbo()">Play Limbo</button>
-                <p id="limbo-result"></p>
-            </div>
-            <div class="game-card">
-                <h2>Plinko</h2>
-                <p>Bet Amount: <input type="number" id="plinko-bet" value="10"></p>
-                <button onclick="playPlinko()">Drop Ball</button>
-                <p id="plinko-result"></p>
-            </div>
-            <div class="game-card">
-                <h2>Blackjack</h2>
-                <p>Bet Amount: <input type="number" id="blackjack-bet" value="10"></p>
-                <button onclick="startBlackjack()">Play</button>
-                <p id="blackjack-result"></p>
-            </div>
-        </section>
+        <h1>Welcome to Win.Fun Casino</h1>
+        <div id="auth-section">
+            <p>Please log in or register to play.</p>
+        </div>
+        <div id="games-section" style="display: none;">
+            <h2>Your Balance: <span id="balance">0</span> SOL</h2>
+            <button onclick="redirectToGame('limbo')">Play Limbo</button>
+            <button onclick="redirectToGame('plinko')">Play Plinko</button>
+            <button onclick="redirectToGame('blackjack')">Play Blackjack</button>
+        </div>
     </div>
+
     <script>
         const apiUrl = "http://localhost:3000";
-        async function playLimbo() {
-            const bet = document.getElementById("limbo-bet").value;
-            const multiplier = document.getElementById("limbo-multiplier").value;
-            // Fetch game logic here...
+        let sessionId = null;
+
+        function showLogin() {
+            document.getElementById("auth-section").innerHTML = `
+                <form onsubmit="login(event)">
+                    <input type="email" id="email" placeholder="Email" required>
+                    <input type="password" id="password" placeholder="Password" required>
+                    <button type="submit">Login</button>
+                </form>
+            `;
         }
-        // Repeat similar for Plinko and Blackjack
-    </script>
-</body>
-</html>
+
+        function showRegister() {
+            document.getElementById("auth-section").innerHTML = `
+                <form onsubmit="register(event)">
+                    <input type="email" id="email" placeholder="Email" required>
+                    <input type="password" id="password" placeholder="Password" required>
+                    <button type="submit">Register</button>
+                </form>
+            `;
+        }
+
+        async function login(event) {
+            event.preventDefault();
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const response = await fetch(`${apiUrl}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await response.json();
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            sessionId = data.sessionId;
+            updateBalance(data.balance);
+            showGames();
+        }
+
+        async function register(event) {
+            event.preventDefault();
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const response = await fetch(`${apiUrl}/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await response.json();
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            alert(data.message);
+            showLogin();
+        }
+
+        async function updateBalance(balance) {
+            document.getElementById("balance").innerText = balance;
+        }
+
+        function showGames() {
+            document.getElementById("auth-section").style.display = "none";
+            document.getElementById("games-section").style.display = "block";
+        }
+
+        function logout() {
+            sessionId = null
